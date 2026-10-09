@@ -32,7 +32,7 @@ function renderSignIn(): void {
   const apiBase = state.creds?.apiBase || defaultApiBase()
   root.innerHTML = `
     <form id="signin" class="card" autocomplete="on">
-      <h1>OurGroceries</h1>
+      <h1>G2Groceries</h1>
       <p class="muted">${state.authFailed ? 'Your saved sign-in was rejected. Please sign in again.'
         : 'Sign in with your OurGroceries account. Your credentials are saved on this phone.'}</p>
       <label>Email<input name="email" type="email" autocomplete="username" required value="${esc(email)}"></label>
@@ -79,7 +79,7 @@ function renderAccount(): void {
     : 'Up to date'
   root.innerHTML = `
     <div class="card">
-      <h1>OurGroceries</h1>
+      <h1>G2Groceries</h1>
       <p class="muted">Signed in as <strong>${esc(state.creds!.email)}</strong></p>
       <dl>
         <dt>Viewing</dt><dd>${esc(state.list?.name || 'All lists')}</dd>

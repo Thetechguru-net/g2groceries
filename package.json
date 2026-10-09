@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "pack": "npm run build && evenhub pack app.json dist -o ourgroceries.ehpk",
+    "pack": "npm run build && evenhub pack app.json dist -o g2groceries.ehpk",
     "simulate": "evenhub-simulator http://localhost:5173",
     "start": "node server/standalone.ts"
   },

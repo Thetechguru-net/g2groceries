@@ -150,7 +150,7 @@ function statusText(): string {
 }
 
 function renderHeader(): string {
-  const title = screen === 'items' ? state.list?.name || 'List' : 'OurGroceries'
+  const title = screen === 'items' ? state.list?.name || 'List' : 'G2Groceries'
   const status = statusText()
   return pxTruncate(status ? `${title}  ·  ${status}` : title, WIDTH)
 }
