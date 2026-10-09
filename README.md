@@ -2,6 +2,13 @@
 
 Shopping lists from [OurGroceries](https://www.ourgroceries.com) on Even Realities G2 glasses.
 
+Vibe coded with Claude Code.  
+Supports reading OurGroceries lists and checking off items.  At this time, does not support adding or editing items.
+
+Requires a proxy server.  Code for self hosting and for an Android companion app to run the proxy on device is included.
+
+Everything below was written by Claude.
+
 ## Run
 
 ```bash
