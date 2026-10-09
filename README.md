@@ -26,7 +26,7 @@ Sign in on the phone screen. The credentials are saved on the phone, and "Sign o
 | Lists | move | open list | — | exit |
 | Items | move | — | check / uncheck | jump to first checked item |
 
-Contextual menu: **Sync all** and **All lists**. Double-press on an empty checked section leaves the selection unchanged. Opening a list for the first time and choosing **All lists** permanently deletes all checked-off items from that OurGroceries list.
+Contextual menu: **Sync all** and **All lists**. Double-press on an empty checked section leaves the selection unchanged. Opening a list, choosing **Sync all**, and choosing **All lists** permanently delete all checked-off items from that OurGroceries list.
 
 Only unchecked items are retrieved from OurGroceries and grouped under category headings. Items checked off locally remain visible until the next successful refresh; checked items are not downloaded.
 List names show the number of unchecked items in each list.
@@ -54,7 +54,7 @@ Open `android-companion/` in Android Studio and build/install the `app` debug va
 
 ## Sync model
 
-Opening a list for the first time deletes its checked-off items from OurGroceries before retrieving it. Choosing **All lists** deletes checked-off items again before leaving. This deletion is permanent. The cached copy is used only when retrieval fails.
+Starting the app deletes checked-off items from every list. Opening a list or choosing **Sync all** deletes that list's checked-off items before retrieving it (**Sync all** on the lists screen covers every list), and choosing **All lists** deletes them again before leaving. This deletion is permanent, and a failed deletion shows "Checked items not deleted". The cached copy is used only when retrieval fails.
 
 Checking an item updates the screen and local storage right away and adds the change to a queue. The queue is then pushed with `toggleItemCrossedOff`.
 

@@ -16,8 +16,6 @@ await store.init()
 phone.start()
 if (bridge) await glasses.start(bridge)
 
-// Fetch the list of lists on every startup (and push anything left unsynced).
-if (store.state.creds) {
-  void store.flushPending()
-  void store.refreshLists()
-}
+// On every startup: push anything left unsynced, fetch the list of lists, and
+// delete checked items from every list.
+if (store.state.creds) void store.syncAll()

@@ -14,11 +14,8 @@ const K = {
   lists: 'og.lists',
   pending: 'og.pending',
   checkedAt: 'og.checkedAt',
-  clearedLists: 'og.clearedLists',
   list: (id: string) => `og.list.${id}`,
 }
-
-const clearedLists = new Set<string>()
 
 export type SyncStatus = 'idle' | 'syncing' | 'offline' | 'error'
 
@@ -69,19 +66,16 @@ function handleError(err: unknown): void {
 // ---------------------------------------------------------------- startup
 
 export async function init(): Promise<void> {
-  const [creds, lists, pending, checkedAt, cleared] = await Promise.all([
+  const [creds, lists, pending, checkedAt] = await Promise.all([
     load<Creds>(K.creds),
     load<ListSummary[]>(K.lists),
     load<Record<string, PendingChange>>(K.pending),
     load<Record<string, number>>(K.checkedAt),
-    load<string[]>(K.clearedLists),
   ])
   state.creds = creds
   state.lists = lists ?? []
   state.pending = pending ?? {}
   state.checkedAt = checkedAt ?? {}
-  clearedLists.clear()
-  for (const id of cleared ?? []) clearedLists.add(id)
   emit()
 }
 
@@ -103,13 +97,12 @@ export async function signOut(): Promise<void> {
   state.list = null
   state.pending = {}
   state.checkedAt = {}
-  clearedLists.clear()
   state.authFailed = false
   state.status = 'idle'
   state.message = ''
   emit()
   await Promise.all([
-    remove(K.creds), remove(K.lists), remove(K.pending), remove(K.checkedAt), remove(K.clearedLists),
+    remove(K.creds), remove(K.lists), remove(K.pending), remove(K.checkedAt),
     ...[...ids].map((id) => remove(K.list(id))),
   ])
 }
@@ -131,13 +124,11 @@ export async function refreshLists(): Promise<void> {
   }
 }
 
-/** Show the cached copy of a list immediately, then fetch the latest. */
+/** Delete the list's checked items, then fetch it; fall back to the cached copy. */
 export async function openList(id: string): Promise<void> {
   const summary = state.lists.find((l) => l.id === id)
   state.list = { id, name: summary?.name ?? '', categories: [], items: [] }
   setStatus('syncing')
-  if (!clearedLists.has(id)) await clearCrossedOff(id)
-  if (state.list?.id !== id) return
   const synced = await syncAll()
   if (!synced && state.list?.id === id) {
     const cached = await load<ListData>(K.list(id))
@@ -169,8 +160,6 @@ export async function clearCrossedOff(id: string): Promise<boolean> {
       await save(K.list(id), list)
     }
     await Promise.all([save(K.pending, state.pending), save(K.checkedAt, state.checkedAt)])
-    clearedLists.add(id)
-    await save(K.clearedLists, [...clearedLists])
     setStatus('idle')
     return true
   } catch (err) {
@@ -178,6 +167,18 @@ export async function clearCrossedOff(id: string): Promise<boolean> {
     return false
   }
 }
+
+/** Delete checked items from every list. Returns false if any list failed. */
+async function clearAllCrossedOff(): Promise<boolean> {
+  let ok = true
+  for (const { id } of state.lists) {
+    if (!(await clearCrossedOff(id))) ok = false
+  }
+  if (!ok && state.status !== 'offline') setStatus('error', CLEAR_FAILED)
+  return ok
+}
+
+const CLEAR_FAILED = 'Checked items not deleted'
 
 export function closeList(): void {
   state.list = null
@@ -248,9 +249,10 @@ async function flushOnce(): Promise<boolean> {
 }
 
 /**
- * Push local changes, then reload the open list (or the list of lists) to pick
- * up edits made in other OurGroceries apps. Changes still queued after a failed
- * push are re-applied on top of the fresh copy so they are not lost.
+ * Push local changes and delete checked items from the open list (or from
+ * every list when none is open), then reload to pick up edits made in other
+ * OurGroceries apps. Changes still queued after a failed push are re-applied
+ * on top of the fresh copy so they are not lost.
  */
 export async function syncAll(): Promise<boolean> {
   const creds = state.creds
@@ -259,9 +261,12 @@ export async function syncAll(): Promise<boolean> {
   const open = state.list
   if (!open) {
     await refreshLists()
+    if (state.creds === creds) await clearAllCrossedOff()
     return false
   }
 
+  const cleared = await clearCrossedOff(open.id)
+  if (state.list?.id !== open.id) return false
   setStatus('syncing')
   try {
     const fresh = await api.list(creds, open.id)
@@ -277,7 +282,9 @@ export async function syncAll(): Promise<boolean> {
     for (const item of fresh.items) if (!item.crossedOff) delete state.checkedAt[item.id]
     state.list = fresh
     await Promise.all([save(K.list(fresh.id), fresh), save(K.checkedAt, state.checkedAt)])
-    setStatus(pendingCount() ? 'offline' : 'idle', pendingCount() ? 'Offline' : '')
+    if (pendingCount()) setStatus('offline', 'Offline')
+    else if (!cleared) setStatus('error', CLEAR_FAILED)
+    else setStatus('idle')
     return true
   } catch (err) {
     handleError(err)
