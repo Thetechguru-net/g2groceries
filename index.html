@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+    <title>OurGroceries</title>
+    <style>
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        /* ER brand dark-theme surface (#232323) + Neutral-200 text (#E5E5E5). */
+        background: #232323;
+        color: #E5E5E5;
+        font: 16px/1.4 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        /* Kill WebView zoom + iOS auto-sizing + rubber-band scroll. */
+        touch-action: manipulation;
+        -webkit-text-size-adjust: 100%;
+        overscroll-behavior: none;
+      }
+      #app { padding: 24px 16px; box-sizing: border-box; max-width: 480px; margin: 0 auto; }
+      .card { display: flex; flex-direction: column; gap: 14px; }
+      h1 { margin: 0; font-size: 22px; }
+      p { margin: 0; }
+      .muted { color: #A3A3A3; }
+      .small { font-size: 13px; }
+      .error { color: #F87171; min-height: 1.4em; }
+      label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: #A3A3A3; }
+      input {
+        font: inherit; color: #E5E5E5; background: #2F2F2F;
+        border: 1px solid #404040; border-radius: 10px; padding: 12px;
+      }
+      input:focus { outline: 2px solid #E5E5E5; outline-offset: 1px; }
+      details summary { cursor: pointer; color: #A3A3A3; font-size: 14px; margin-bottom: 8px; }
+      button {
+        font: inherit; font-weight: 600; padding: 14px; border-radius: 12px; border: 0;
+        background: #E5E5E5; color: #232323;
+      }
+      button:disabled { opacity: .5; }
+      button.secondary { background: transparent; color: #E5E5E5; border: 1px solid #404040; }
+      button.danger { background: #B91C1C; color: #fff; }
+      dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; }
+      dt { color: #A3A3A3; }
+      dd { margin: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="app">Loading…</div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
