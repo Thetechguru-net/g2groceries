@@ -4,7 +4,8 @@
 // right away, queued in `pending`, then pushed to OurGroceries. If the push
 // fails (offline, server down) the change stays queued and the whole queue is
 // retried after every later change and on "Sync all".
-import { api, AuthError, NetworkError, withoutCrossedOffItems, type Creds, type ListData, type ListSummary } from './api'
+import { api, AuthError, NetworkError, ServerError, withoutCrossedOffItems, type Creds, type ListData, type ListSummary } from './api'
+import { log } from './log'
 import { load, remove, save } from './storage'
 
 interface PendingChange { listId: string; itemId: string; crossedOff: boolean }
@@ -44,6 +45,10 @@ function emit(): void {
 }
 
 function setStatus(status: SyncStatus, message = ''): void {
+  if (status !== state.status || message !== state.message) {
+    log[status === 'error' ? 'error' : status === 'offline' ? 'warn' : 'info'](
+      `status: ${status}${message ? ` (${message})` : ''}`)
+  }
   state.status = status
   state.message = message
   emit()
@@ -56,6 +61,9 @@ function handleError(err: unknown): void {
   if (err instanceof AuthError) {
     state.authFailed = true
     setStatus('error', 'Sign-in rejected')
+  } else if (err instanceof ServerError) {
+    // The proxy is reachable, so this is not "offline"; show what went wrong.
+    setStatus('error', err.message)
   } else if (err instanceof NetworkError) {
     setStatus('offline', 'Offline')
   } else {
@@ -127,6 +135,7 @@ export async function refreshLists(): Promise<void> {
 /** Delete the list's checked items, then fetch it; fall back to the cached copy. */
 export async function openList(id: string): Promise<void> {
   const summary = state.lists.find((l) => l.id === id)
+  log.info(`open list "${summary?.name ?? id}"`)
   state.list = { id, name: summary?.name ?? '', categories: [], items: [] }
   setStatus('syncing')
   const synced = await syncAll()
@@ -143,7 +152,11 @@ export async function openList(id: string): Promise<void> {
 /** Delete checked items remotely after applying every queued local change. */
 export async function clearCrossedOff(id: string): Promise<boolean> {
   const creds = state.creds
-  if (!creds || !(await flushPending())) return false
+  if (!creds) return false
+  if (!(await flushPending())) {
+    log.warn(`skip deleting checked items in ${id}: unsynced changes could not be pushed`)
+    return false
+  }
   try {
     await api.clearCrossedOff(creds, id)
     if (state.creds !== creds) return false
@@ -170,6 +183,7 @@ export async function clearCrossedOff(id: string): Promise<boolean> {
 
 /** Delete checked items from every list. Returns false if any list failed. */
 async function clearAllCrossedOff(): Promise<boolean> {
+  log.info(`delete checked items from ${state.lists.length} list(s)`)
   let ok = true
   for (const { id } of state.lists) {
     if (!(await clearCrossedOff(id))) ok = false
@@ -257,6 +271,7 @@ async function flushOnce(): Promise<boolean> {
 export async function syncAll(): Promise<boolean> {
   const creds = state.creds
   if (!creds) return false
+  log.info(`sync all (${state.list ? `list "${state.list.name}"` : 'all lists'}, ${pendingCount()} unsynced)`)
   await flushPending()
   const open = state.list
   if (!open) {

@@ -1,4 +1,5 @@
 // Client for the /api proxy in server/og-api.ts.
+import { log } from './log'
 
 export interface Creds {
   email: string
@@ -20,11 +21,16 @@ export function withoutCrossedOffItems(list: ListData): ListData {
 export class AuthError extends Error { override name = 'AuthError' }
 /** Could not reach the proxy, or the proxy could not reach OurGroceries. Safe to retry. */
 export class NetworkError extends Error { override name = 'NetworkError' }
+/** The proxy answered with a 5xx: it is reachable but the request failed. Safe to retry. */
+export class ServerError extends NetworkError { override name = 'ServerError' }
 
 const TIMEOUT_MS = 20_000
 
 async function call<T>(creds: Creds, route: string, extra: Record<string, unknown> = {}): Promise<T> {
   const base = creds.apiBase.replace(/\/+$/, '')
+  const what = `${route}${extra.listId ? ` list=${String(extra.listId)}` : ''}`
+  const started = Date.now()
+  const ms = () => `${Date.now() - started} ms`
   let res: Response
   try {
     res = await fetch(`${base}/api/${route}`, {
@@ -34,12 +40,18 @@ async function call<T>(creds: Creds, route: string, extra: Record<string, unknow
       signal: AbortSignal.timeout(TIMEOUT_MS),
     })
   } catch (err) {
-    throw new NetworkError((err as Error)?.message || 'Network unavailable')
+    const message = (err as Error)?.message || 'Network unavailable'
+    log.error(`${what} → no response after ${ms()}: ${message}`)
+    throw new NetworkError(message)
   }
   const body = await res.json().catch(() => ({})) as { error?: string }
-  if (res.ok) return body as T
+  if (res.ok) {
+    log.info(`${what} → ${res.status} in ${ms()}`)
+    return body as T
+  }
+  log.error(`${what} → ${res.status} in ${ms()}: ${body.error ?? '(no message)'}`)
   if (res.status === 401) throw new AuthError(body.error || 'Invalid email or password')
-  if (res.status >= 500) throw new NetworkError(body.error || `Server error ${res.status}`)
+  if (res.status >= 500) throw new ServerError(body.error || `Server error ${res.status}`)
   throw new Error(body.error || `Request failed (${res.status})`)
 }
 
@@ -53,4 +65,6 @@ export const api = {
     call<{ ok: true }>(c, 'clear-crossed-off', { listId }),
   toggle: (c: Creds, listId: string, itemId: string, crossedOff: boolean) =>
     call<{ ok: true }>(c, 'toggle', { listId, itemId, crossedOff }),
+  /** Recent log lines from the Android companion (not available from the Node proxy). */
+  serverLog: (c: Creds) => call<{ lines: string[] }>(c, 'log').then((r) => r.lines),
 }

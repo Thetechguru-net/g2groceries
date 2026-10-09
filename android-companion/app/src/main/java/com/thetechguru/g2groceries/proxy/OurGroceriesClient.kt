@@ -31,6 +31,7 @@ internal class OurGroceriesClient(
     @Synchronized
     fun login() {
         if (cookieJar.hasSession()) return
+        ProxyLog.i("Signing in to OurGroceries")
         try {
             var form = loginForm(get("$BASE_URL/sign-in"))
             form["emailAddress"] = email
@@ -42,11 +43,14 @@ internal class OurGroceriesClient(
             postForm("$BASE_URL/sign-in", form)
             if (!cookieJar.hasSession()) throw AuthenticationException("Invalid email or password")
             readMetadata()
+            ProxyLog.i("Signed in")
         } catch (err: AuthenticationException) {
             cookieJar.clear()
+            ProxyLog.w("Sign-in rejected: ${err.message}")
             throw err
         } catch (err: Exception) {
             cookieJar.clear()
+            ProxyLog.e("Sign-in failed: ${err.message}", err)
             throw OurGroceriesException("OurGroceries sign-in failed: ${err.message}")
         }
     }
@@ -117,11 +121,13 @@ internal class OurGroceriesClient(
         } catch (err: AuthenticationException) {
             throw err
         } catch (first: Exception) {
+            ProxyLog.w("Request failed, signing in again and retrying: ${first.message}")
             cookieJar.clear()
             login()
             try {
                 block()
             } catch (err: Exception) {
+                ProxyLog.e("Retry failed: ${err.message}", err)
                 throw OurGroceriesException("OurGroceries request failed: ${err.message}")
             }
         }
@@ -163,10 +169,23 @@ internal class OurGroceriesClient(
             .header("Accept", "application/json")
             .header("User-Agent", USER_AGENT)
             .build()
+        val started = System.currentTimeMillis()
         http.newCall(request).execute().use { response ->
             val body = response.body?.string().orEmpty()
-            if (!response.isSuccessful) throw IOException("OurGroceries returned HTTP ${response.code}")
-            return JSONObject(body)
+            val elapsed = System.currentTimeMillis() - started
+            if (!response.isSuccessful) {
+                ProxyLog.w("$name -> HTTP ${response.code} in $elapsed ms")
+                throw IOException("OurGroceries returned HTTP ${response.code}")
+            }
+            ProxyLog.i("$name -> HTTP ${response.code}, ${body.length} bytes in $elapsed ms")
+            // Some commands (e.g. deleteAllCrossedOffItems) succeed with an empty body.
+            if (body.isBlank()) return JSONObject()
+            return try {
+                JSONObject(body)
+            } catch (err: org.json.JSONException) {
+                ProxyLog.w("$name returned non-JSON: ${body.take(200)}")
+                throw IOException("OurGroceries returned an unexpected response to $name")
+            }
         }
     }
 

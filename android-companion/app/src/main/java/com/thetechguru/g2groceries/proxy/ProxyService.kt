@@ -20,9 +20,11 @@ class ProxyService : Service() {
             server = ProxyServer().also { it.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false) }
             running = true
             lastError = null
+            ProxyLog.i("Proxy started on 127.0.0.1:${ProxyServer.PORT}")
         } catch (err: Exception) {
             running = false
             lastError = err.message ?: "Could not start proxy"
+            ProxyLog.e("Proxy failed to start: ${err.message}", err)
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
@@ -31,6 +33,7 @@ class ProxyService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_NOT_STICKY
 
     override fun onDestroy() {
+        ProxyLog.i("Proxy stopped")
         server?.stop()
         server = null
         running = false

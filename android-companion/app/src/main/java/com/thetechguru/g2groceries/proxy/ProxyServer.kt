@@ -24,6 +24,8 @@ class ProxyServer : NanoHTTPD("127.0.0.1", PORT) {
             return jsonError(Response.Status.NOT_FOUND, "Unknown route").withHeaders(headers)
         }
 
+        val started = System.currentTimeMillis()
+        val elapsed = { "${System.currentTimeMillis() - started} ms" }
         return try {
             val contentLength = session.headers["content-length"]?.toLongOrNull()
             if (contentLength != null && contentLength > MAX_BODY_BYTES) {
@@ -49,6 +51,7 @@ class ProxyServer : NanoHTTPD("127.0.0.1", PORT) {
                         put("ok", true)
                     }
                     "lists" -> put("lists", client.getLists())
+                    "log" -> put("lines", org.json.JSONArray(ProxyLog.lines()))
                     "list" -> {
                         val listId = body.optString("listId")
                         if (listId.isBlank()) throw HttpError(Response.Status.BAD_REQUEST, "listId required")
@@ -76,11 +79,15 @@ class ProxyServer : NanoHTTPD("127.0.0.1", PORT) {
                 }
             }.toString().let { newFixedLengthResponse(Response.Status.OK, "application/json", it) }
                 .withHeaders(headers)
+                .also { if (route != "log") ProxyLog.i("/api/$route ${describe(body)} -> 200 in ${elapsed()}") }
         } catch (err: HttpError) {
+            ProxyLog.w("/api/$route -> ${err.status.requestStatus} in ${elapsed()}: ${err.message}")
             jsonError(err.status, err.message ?: "Request failed").withHeaders(headers)
         } catch (err: OurGroceriesException) {
+            ProxyLog.e("/api/$route -> ${err.status.requestStatus} in ${elapsed()}: ${err.message}")
             jsonError(err.status, err.message ?: "OurGroceries request failed").withHeaders(headers)
         } catch (err: Exception) {
+            ProxyLog.e("/api/$route -> 500 in ${elapsed()}: ${err.message}", err)
             jsonError(Response.Status.INTERNAL_ERROR, err.message ?: "Internal error").withHeaders(headers)
         }
     }
@@ -98,6 +105,12 @@ class ProxyServer : NanoHTTPD("127.0.0.1", PORT) {
             .joinToString("") { "%02x".format(it) }
         return clients.computeIfAbsent(key) { OurGroceriesClient(email, password) }
     }
+
+    /** Request details safe to log (never the credentials). */
+    private fun describe(body: JSONObject): String =
+        listOf("listId", "itemId", "crossedOff")
+            .filter { body.has(it) }
+            .joinToString(" ") { "$it=${body.opt(it)}" }
 
     private fun Response.withHeaders(extra: Map<String, String>): Response = apply {
         extra.forEach { (name, value) -> addHeader(name, value) }
