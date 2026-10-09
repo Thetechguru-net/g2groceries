@@ -7,4 +7,6 @@ dist/
 android-companion/.gradle/
 android-companion/.kotlin/
 android-companion/local.properties
-android-companion/**/build/
+android-companion/**/build/**
+!android-companion/**/build/**/
+!android-companion/app/build/outputs/apk/debug/app-debug.apk
