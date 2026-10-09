@@ -39,6 +39,12 @@ A packaged `.ehpk` must be told where that server is: enter its URL under **Serv
 
 Use HTTPS for anything beyond your LAN, because the app sends your OurGroceries credentials to the proxy on every request.
 
+## Android companion proxy
+
+The optional Android companion in `android-companion/` runs the OurGroceries proxy directly on the phone, so no external Node server is needed. It listens only on `127.0.0.1:42225`; start it from the companion app before using the Even app, then enter `http://127.0.0.1:42225` in the Even app's **Server** field.
+
+Open `android-companion/` in Android Studio and build/install the `app` debug variant. The companion uses a foreground service while running and keeps OurGroceries session cookies only in memory. The Even package's `app.json` network permission must include the loopback URL/port. Android may stop long-running foreground data-sync services under OS limits, so this is intended for personal use while actively using the glasses app.
+
 ## Sync model
 
 Opening a list for the first time deletes its checked-off items from OurGroceries before retrieving it. Choosing **All lists** deletes checked-off items again before leaving. This deletion is permanent. The cached copy is used only when retrieval fails.

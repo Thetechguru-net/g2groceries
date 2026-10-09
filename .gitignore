@@ -4,3 +4,7 @@ dist/
 .env
 .env.*
 !.env.example
+android-companion/.gradle/
+android-companion/.kotlin/
+android-companion/local.properties
+android-companion/**/build/

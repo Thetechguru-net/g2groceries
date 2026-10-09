@@ -136,7 +136,7 @@ export async function openList(id: string): Promise<void> {
   const summary = state.lists.find((l) => l.id === id)
   state.list = { id, name: summary?.name ?? '', categories: [], items: [] }
   setStatus('syncing')
-  if (!clearedLists.has(id) && !(await clearCrossedOff(id))) return
+  if (!clearedLists.has(id)) await clearCrossedOff(id)
   if (state.list?.id !== id) return
   const synced = await syncAll()
   if (!synced && state.list?.id === id) {

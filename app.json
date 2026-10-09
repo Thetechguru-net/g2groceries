@@ -2,11 +2,17 @@
   "package_id": "com.example.ourgroceries",
   "edition": "202601",
   "name": "OurGroceries",
-  "version": "0.1.0",
+  "version": "0.1.5",
   "min_app_version": "2.0.0",
   "min_sdk_version": "0.0.16",
   "entrypoint": "index.html",
-  "permissions": [],
+  "permissions": [{
+      "name": "network",
+      "desc": "This app needs to access the network in order to read and update OurGroceries",
+      "whitelist": [
+        "http://127.0.0.1:42225/"
+      ]
+    }],
   "supported_languages": [
     "en"
   ]
