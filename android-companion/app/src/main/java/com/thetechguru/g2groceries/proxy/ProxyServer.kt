@@ -6,13 +6,21 @@ import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 
 class ProxyServer : NanoHTTPD("127.0.0.1", PORT) {
+    // NanoHTTPD gzips text and JSON responses by default, switching them to
+    // chunked encoding. On the 204 preflight reply that leaves body bytes on
+    // the keep-alive connection, which the WebView then reads as the response
+    // to the next request on that socket and fails with "Failed to fetch".
+    override fun useGzipWhenAccepted(r: Response): Boolean = false
+
     override fun serve(session: IHTTPSession): Response {
         val headers = mapOf(
             "Access-Control-Allow-Origin" to "*",
             "Access-Control-Allow-Methods" to "POST, OPTIONS",
             "Access-Control-Allow-Headers" to "Content-Type",
+            "Access-Control-Max-Age" to "86400",
         )
         if (session.method == Method.OPTIONS) {
+            ProxyLog.i("preflight ${session.uri}")
             return newFixedLengthResponse(Response.Status.NO_CONTENT, MIME_PLAINTEXT, "").withHeaders(headers)
         }
         if (session.method != Method.POST) {
