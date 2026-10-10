@@ -4,9 +4,12 @@ import { log } from './log'
 export interface Creds {
   email: string
   password: string
-  /** Origin of the proxy server; empty means same origin as the page. */
+  /** Origin of the proxy server; empty means DEFAULT_API_BASE. */
   apiBase: string
 }
+
+/** The Android companion proxy, which listens only on the phone's loopback. */
+export const DEFAULT_API_BASE = 'http://127.0.0.1:42225/'
 
 export interface ListSummary { id: string; name: string; activeCount?: number }
 export interface Category { id: string; name: string }
@@ -27,7 +30,7 @@ export class ServerError extends NetworkError { override name = 'ServerError' }
 const TIMEOUT_MS = 20_000
 
 async function call<T>(creds: Creds, route: string, extra: Record<string, unknown> = {}): Promise<T> {
-  const base = creds.apiBase.replace(/\/+$/, '')
+  const base = (creds.apiBase || DEFAULT_API_BASE).replace(/\/+$/, '')
   const what = `${route}${extra.listId ? ` list=${String(extra.listId)}` : ''}`
   const started = Date.now()
   const ms = () => `${Date.now() - started} ms`

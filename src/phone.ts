@@ -1,5 +1,5 @@
 // Phone-side UI inside the Even app: sign in, status, sync, sign out.
-import { api, AuthError, NetworkError } from './api'
+import { api, AuthError, DEFAULT_API_BASE, NetworkError } from './api'
 import { formatEntry, log, logEntries, onLog } from './log'
 import * as store from './store'
 import { state } from './store'
@@ -8,8 +8,6 @@ const root = document.getElementById('app')!
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 
-/** Default proxy location: the page's own origin when it was served over http(s). */
-const defaultApiBase = () => (/^https?:$/.test(location.protocol) ? location.origin : '')
 
 let confirmingSignOut = false
 let formError = ''
@@ -32,7 +30,7 @@ function renderSignIn(): void {
     return
   }
   const email = state.creds?.email ?? ''
-  const apiBase = state.creds?.apiBase || defaultApiBase()
+  const apiBase = state.creds?.apiBase || DEFAULT_API_BASE
   root.innerHTML = `
     <form id="signin" class="card" autocomplete="on">
       <h1>G2Groceries</h1>
@@ -42,7 +40,7 @@ function renderSignIn(): void {
       <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
       <details ${apiBase ? '' : 'open'}>
         <summary>Server</summary>
-        <label>Proxy server URL<input name="apiBase" type="url" placeholder="https://your-server:8787" value="${esc(apiBase)}"></label>
+        <label>Proxy server URL<input name="apiBase" type="url" placeholder="${DEFAULT_API_BASE}" value="${esc(apiBase)}"></label>
       </details>
       <p id="err" class="error" role="alert">${esc(formError)}</p>
       <button type="submit" ${submitting ? 'disabled' : ''}>${submitting ? 'Signing in…' : 'Sign in'}</button>

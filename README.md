@@ -17,7 +17,7 @@ npm run dev          # app + OurGroceries proxy on :5173
 npm run simulate     # or: npx evenhub qr --url http://<your-ip>:5173
 ```
 
-Sign in on the phone screen. The credentials are saved on the phone, and "Sign out" erases them along with all cached lists.
+Sign in on the phone screen. The **Server** field defaults to the Android companion (`http://127.0.0.1:42225/`); when using the dev server, change it to the dev server's URL (e.g. `http://<your-ip>:5173`). The credentials are saved on the phone, and "Sign out" erases them along with all cached lists.
 
 ## Using it on the glasses
 
@@ -48,7 +48,7 @@ Use HTTPS for anything beyond your LAN, because the app sends your OurGroceries 
 
 ## Android companion proxy
 
-The optional Android companion in `android-companion/` runs the OurGroceries proxy directly on the phone, so no external Node server is needed. It listens only on `127.0.0.1:42225`; start it from the companion app before using the Even app, then enter `http://127.0.0.1:42225` in the Even app's **Server** field.
+The optional Android companion in `android-companion/` runs the OurGroceries proxy directly on the phone, so no external Node server is needed. It listens only on `127.0.0.1:42225`; start it from the companion app before using the Even app, the Even app's **Server** field defaults to `http://127.0.0.1:42225/`.
 
 Open `android-companion/` in Android Studio and build/install the `app` debug variant. The companion uses a foreground service while running and keeps OurGroceries session cookies only in memory. The Even package's `app.json` network permission must include the loopback URL/port. Android may stop long-running foreground data-sync services under OS limits, so this is intended for personal use while actively using the glasses app.
 
