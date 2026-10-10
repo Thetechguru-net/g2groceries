@@ -34,14 +34,26 @@ async function call<T>(creds: Creds, route: string, extra: Record<string, unknow
   const what = `${route}${extra.listId ? ` list=${String(extra.listId)}` : ''}`
   const started = Date.now()
   const ms = () => `${Date.now() - started} ms`
+  // text/plain keeps this a CORS "simple" request: no OPTIONS preflight, which
+  // the WebView failed on the first call to each route. Both proxies parse the
+  // body as JSON regardless of content type.
+  const send = () => fetch(`${base}/api/${route}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+    body: JSON.stringify({ email: creds.email, password: creds.password, ...extra }),
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  })
   let res: Response
   try {
-    res = await fetch(`${base}/api/${route}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: creds.email, password: creds.password, ...extra }),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    })
+    try {
+      res = await send()
+    } catch (err) {
+      // Every route is safe to repeat; retry once in case a stale connection was reused.
+      if ((err as Error)?.name === 'TimeoutError') throw err
+      log.warn(`${what} → no response after ${ms()}: ${(err as Error)?.message}; retrying`)
+      await new Promise((resolve) => setTimeout(resolve, 250))
+      res = await send()
+    }
   } catch (err) {
     const message = (err as Error)?.message || 'Network unavailable'
     log.error(`${what} → no response after ${ms()}: ${message}`)
