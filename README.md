@@ -50,7 +50,7 @@ Use HTTPS for anything beyond your LAN, because the app sends your OurGroceries 
 
 The optional Android companion in `android-companion/` runs the OurGroceries proxy directly on the phone, so no external Node server is needed. It listens only on `127.0.0.1:42225`; start it from the companion app before using the Even app, the Even app's **Server** field defaults to `http://127.0.0.1:42225/`.
 
-Open `android-companion/` in Android Studio and build/install the `app` debug variant. The companion uses a foreground service while running and keeps OurGroceries session cookies only in memory. The Even package's `app.json` network permission must include the loopback URL/port. Android may stop long-running foreground data-sync services under OS limits, so this is intended for personal use while actively using the glasses app.
+Open `android-companion/` in Android Studio and build/install the `app` debug variant. The proxy starts automatically when the companion app opens, when the phone boots, and after the companion is updated; open the app once after installing so Android allows it to start at boot. It runs as a `specialUse` foreground service (a `dataSync` service can't start at boot on Android 15 and is limited to 6 hours a day) and keeps OurGroceries session cookies only in memory. Some phones' battery optimisation can still stop background apps; exempt the companion if the proxy stops on its own. The Even package's `app.json` network permission must include the loopback URL/port.
 
 ## Sync model
 

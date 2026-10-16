@@ -18,6 +18,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestNotificationPermission()
+        ProxyService.start(this, "app opened")
 
         val padding = (24 * resources.displayMetrics.density).toInt()
         val layout = LinearLayout(this).apply {
@@ -32,7 +33,7 @@ class MainActivity : Activity() {
         val start = Button(this).apply {
             text = "Start proxy"
             setOnClickListener {
-                startForegroundService(Intent(this@MainActivity, ProxyService::class.java))
+                ProxyService.start(this@MainActivity, "Start pressed")
                 status.text = "Starting on http://127.0.0.1:${ProxyServer.PORT}"
                 status.postDelayed({ updateStatus() }, 750)
             }
@@ -45,7 +46,7 @@ class MainActivity : Activity() {
             }
         }
         val help = TextView(this).apply {
-            text = "\nKeep this service running while using the Even app.\n\n" +
+            text = "\nThe proxy starts automatically when this app opens and when the phone boots.\n\n" +
                 "In the Even app Server field, use:\nhttp://127.0.0.1:${ProxyServer.PORT}\n\n" +
                 "The companion communicates with OurGroceries over HTTPS."
         }
@@ -59,6 +60,8 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         updateStatus()
+        // The service starts asynchronously; refresh once it has had time to bind the port.
+        status.postDelayed({ updateStatus() }, 750)
     }
 
     private fun updateStatus() {

@@ -4,7 +4,9 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import fi.iki.elonen.NanoHTTPD
@@ -15,7 +17,11 @@ class ProxyService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, notification())
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(NOTIFICATION_ID, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(NOTIFICATION_ID, notification())
+        }
         try {
             server = ProxyServer().also { it.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false) }
             running = true
@@ -31,7 +37,8 @@ class ProxyService : Service() {
         }
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_NOT_STICKY
+    // Ask Android to restart the proxy if it kills the process for memory.
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
     override fun onDestroy() {
         ProxyLog.i("Proxy stopped")
@@ -71,6 +78,13 @@ class ProxyService : Service() {
     }
 
     companion object {
+        /** Start the proxy unless it is already running. */
+        fun start(context: Context, reason: String) {
+            if (running) return
+            ProxyLog.i("Starting proxy ($reason)")
+            context.startForegroundService(Intent(context, ProxyService::class.java))
+        }
+
         @Volatile
         var running = false
             private set
