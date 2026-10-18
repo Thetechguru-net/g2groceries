@@ -9,6 +9,8 @@ Requires a proxy server.  Code for self hosting and for an Android companion app
 
 Utilizes the unofficial node.js ourgroceries API wrapper https://classic.yarnpkg.com/en/package/ourgroceries
 
+MIT License
+
 Everything below was written by Claude.
 
 ## Run
