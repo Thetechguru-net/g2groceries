@@ -7,6 +7,8 @@ Supports reading OurGroceries lists and checking off items.  At this time, does 
 
 Requires a proxy server.  Code for self hosting and for an Android companion app to run the proxy on device is included.
 
+Utilizes the unofficial node.js ourgroceries API wrapper https://classic.yarnpkg.com/en/package/ourgroceries
+
 Everything below was written by Claude.
 
 ## Run
